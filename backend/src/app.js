@@ -1,12 +1,29 @@
-// backend/src/index.ts
 import express from "express";
 import cors from "cors";
+import morgan from "morgan";
 import { audioRouter } from "./routes/audio.js";
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+export function createApp() {
+  const app = express();
 
-app.use("/audio", audioRouter);
+  const allowedOrigin = process.env.CLIENT_ORIGIN || "*";
 
-app.listen(4000, () => console.log("Server running on http://localhost:4000"));
+  app.use(cors({ origin: allowedOrigin }));
+  app.use(express.json());
+  app.use(morgan("dev"));
+
+  app.get("/health", (req, res) => {
+    res.json({ status: "ok" });
+  });
+
+  app.use("/api/audio", audioRouter);
+
+  app.use((err, req, res, next) => {
+    console.error(err);
+    res.status(err.status || 500).json({
+      message: err.message || "Internal server error",
+    });
+  });
+
+  return app;
+}
